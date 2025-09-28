@@ -4,7 +4,7 @@
   "publisher": "your-publisher-name",
   "version": "0.0.1",
   "engines": {
-    "vscode": "^1.70.0"
+    "vscode": "^1.82.0"
   },
   "categories": [
     "Other"
@@ -48,8 +48,8 @@
     "watch": "tsc -w -p ./"
   },
   "devDependencies": {
-    "@types/node": "^18.16.19",
-    "typescript": "^4.9.5",
-    "vscode": "^1.1.59"
-  }
+  "@types/node": "^18.16.19",
+  "typescript": "^4.9.5",
+  "@types/vscode": "^1.82.0"   
+}
 }
