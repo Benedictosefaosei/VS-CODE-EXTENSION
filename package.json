@@ -39,6 +39,14 @@
       {
         "command": "extension.viewQA",
         "title": "Quiz: View Questions & Answers"
+      },
+      {
+        "command": "quiz.createConfigFile",
+        "title": "Quiz: Create Config File"
+      },
+      {
+        "command": "extension.generateQA",
+        "title": "Quiz: Generate QA"
       }
     ]
   },
@@ -48,8 +56,12 @@
     "watch": "tsc -w -p ./"
   },
   "devDependencies": {
-  "@types/node": "^18.16.19",
-  "typescript": "^4.9.5",
-  "@types/vscode": "^1.82.0"   
-}
+    "@types/node": "^18.16.19",
+    "@types/uuid": "^10.0.0",
+    "@types/vscode": "^1.82.0",
+    "typescript": "^4.9.5"
+  },
+  "dependencies": {
+    "uuid": "^13.0.0"
+  }
 }

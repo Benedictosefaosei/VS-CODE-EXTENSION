@@ -36,6 +36,14 @@ exports.deactivate = exports.activate = void 0;
 const vscode = __importStar(require("vscode"));
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
+// Add this UUID generation function (you can place it outside the command registration)
+function generateUUID() {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+        const r = Math.random() * 16 | 0;
+        const v = c == 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+    });
+}
 const STORAGE_REL_PATH = ".vscode/quiz-questions.json";
 let decorationType;
 /**
@@ -165,201 +173,6 @@ function openFileAt(item) {
 function makeId() {
     return Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 9);
 }
-// function getWebviewHtml(items: QAItem[], panel: vscode.WebviewPanel): string {
-//   const nonce = makeId();
-//   const itemsJson = JSON.stringify(items);
-//   return `<!DOCTYPE html>
-// <html lang="en">
-// <head>
-// <meta charset="utf-8" />
-// <meta http-equiv="Content-Security-Policy"
-//       content="default-src 'none'; script-src 'nonce-${nonce}'; style-src 'nonce-${nonce}';">
-// <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-// <title>Quiz: Questions & Answers</title>
-// <style nonce="${nonce}">
-//   body { font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto; padding:16px; }
-//   .controls { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:12px; }
-//   input[type="text"], select, button { padding:4px 6px; font-size:14px; }
-//   table { width:100%; border-collapse:collapse; margin-top:8px; }
-//   th, td { padding:8px; border:1px solid #ddd; vertical-align:top; }
-//   th { background:#f5f5f5; }
-//   pre { margin:0; white-space:pre-wrap; word-break:break-word; background:#f8f8f8; padding:6px; border-radius:4px; max-height:160px; overflow:auto; }
-//   button { border-radius:6px; cursor:pointer; }
-//   .small-btn { font-size:0.9em; }
-//   .pagination { display:flex; justify-content:center; align-items:center; gap:8px; margin-top:12px; }
-//   #studentSummary { margin-top:20px; border:1px solid #ccc; padding:10px; border-radius:6px; display:none; }
-//   #studentSummary h3 { margin-top:0; }
-//   #studentTable td { padding:6px 10px; }
-//   .green { background:#c8f7c5; }
-//   .yellow { background:#fff7b2; }
-//   .red { background:#f7c5c5; }
-// </style>
-// </head>
-// <body>
-//   <div class="controls">
-//     <input type="text" id="filterText" placeholder="Search text…">
-//     <select id="statusFilter">
-//       <option value="all">All</option>
-//       <option value="answered">Answered</option>
-//       <option value="unanswered">Unanswered</option>
-//     </select>
-//     <label>Page size:
-//       <select id="pageSize"><option>5</option><option selected>10</option><option>15</option><option>20</option></select>
-//     </label>
-//     <button id="refresh">Refresh</button>
-//     <button id="toggleStudents">Toggle Student Summary</button>
-//   </div>
-//  <div id="studentSummary">
-//     <h3>Student Summary</h3>
-//     <table id="studentTable">
-//       <thead><tr><th>Student</th><th># Questions</th></tr></thead>
-//       <tbody></tbody>
-//     </table>
-//   </div>
-//   <table>
-//     <thead>
-//       <tr>
-//         <th style="width:28%">Question</th>
-//         <th style="width:30%">Code</th>
-//         <th style="width:24%">Answer</th>
-//         <th style="width:18%">Path & Actions</th>
-//       </tr>
-//     </thead>
-//     <tbody id="rows"></tbody>
-//   </table>
-//   <div class="pagination">
-//     <button id="prevPage">Prev</button>
-//     <span id="pageInfo"></span>
-//     <button id="nextPage">Next</button>
-//   </div>
-// <script nonce="${nonce}">
-//   const vscode = acquireVsCodeApi();
-//   const allItems = ${itemsJson};
-//   // ---------- Filtering & Paging ----------
-//   let filterText = '';
-//   let statusFilter = 'all';
-//   let pageSize = 10;
-//   let currentPage = 1;
-//   function esc(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
-//   function applyFilters() {
-//     const text = filterText.toLowerCase();
-//     return allItems.filter(it => {
-//       const matchText = !text || it.question.toLowerCase().includes(text) ||
-//         (it.answer||'').toLowerCase().includes(text) ||
-//         it.filePath.toLowerCase().includes(text);
-//       const matchStatus = statusFilter==='all' ||
-//         (statusFilter==='answered' && it.answer) ||
-//         (statusFilter==='unanswered' && !it.answer);
-//       return matchText && matchStatus;
-//     });
-//   }
-//   function renderTable() {
-//     const filtered = applyFilters();
-//     const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
-//     if (currentPage > totalPages) currentPage = totalPages;
-//     const pageItems = filtered.slice((currentPage-1)*pageSize, currentPage*pageSize);
-//     const rows = document.getElementById('rows');
-//     rows.innerHTML = '';
-//     if (!pageItems.length) {
-//       rows.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:20px;">No matching questions</td></tr>';
-//     } else {
-//       for (const it of pageItems) {
-//         const tr = document.createElement('tr');
-//         const qTd = document.createElement('td');
-//         qTd.innerHTML = '<strong>'+esc(it.question)+'</strong><div style="color:#666;font-size:0.9em;">'+new Date(it.askedAt).toLocaleString()+'</div>';
-//         tr.appendChild(qTd);
-//         const cTd = document.createElement('td');
-//         const pre = document.createElement('pre'); pre.textContent = it.snippet;
-//         cTd.appendChild(pre); tr.appendChild(cTd);
-//         const aTd = document.createElement('td');
-//         aTd.innerHTML = it.answer ? esc(it.answer)+'<div style="color:#666;font-size:0.9em;">'+new Date(it.answeredAt).toLocaleString()+'</div>' : '<em>(not answered)</em>';
-//         tr.appendChild(aTd);
-//         const pTd = document.createElement('td');
-//         const link = document.createElement('a'); link.href='#'; link.textContent=it.filePath;
-//         link.addEventListener('click', e=>{e.preventDefault(); vscode.postMessage({command:'open',id:it.id});});
-//         pTd.appendChild(link); pTd.appendChild(document.createElement('br'));
-//         const eq = document.createElement('button'); eq.className='small-btn'; eq.textContent='Edit Q';
-//         eq.addEventListener('click', ()=>vscode.postMessage({command:'runCommand', name:'extension.editQuestion', id:it.id}));
-//         const ans = document.createElement('button'); ans.className='small-btn';
-//         ans.textContent = it.answer ? 'Edit A' : 'Answer'; ans.style.marginLeft='6px';
-//         ans.addEventListener('click', ()=>vscode.postMessage({command: it.answer?'editAnswer':'answerQuestion', id:it.id}));
-//         const del = document.createElement('button'); del.className='small-btn'; del.textContent='Delete'; del.style.marginLeft='6px';
-//         del.addEventListener('click', ()=>vscode.postMessage({command:'delete', id:it.id}));
-//         const copyBtn = document.createElement('button');
-//         copyBtn.className = 'small-btn';
-//         copyBtn.textContent = 'Copy';
-//         copyBtn.style.marginLeft = '6px';
-//         copyBtn.addEventListener('click', () => {
-//           navigator.clipboard.writeText(it.question)
-//             .then(() => {
-//               // optional feedback inside the webview
-//               alert('Question copied to clipboard');
-//             })x
-//             .catch(err => {
-//               console.error('Clipboard copy failed', err);
-//             });
-//         });
-//         pTd.appendChild(eq); pTd.appendChild(ans); pTd.appendChild(del); pTd.appendChild(copyBtn);
-//         tr.appendChild(pTd);
-//         rows.appendChild(tr);
-//       }
-//     }
-//     document.getElementById('pageInfo').textContent = \`Page \${currentPage} / \${totalPages}\`;
-//   }
-//   // ---------- Student Summary ----------
-//   function extractStudent(filePath) {
-//     // Take first folder of the path as "student name"
-//     const parts = filePath.split(/[\\\\/]/);
-//     return parts.length ? parts[0] : '';
-//   }
-//   function renderStudents() {
-//     // All unique student names from workspace + counts
-//     const counts = {};
-//     for (const it of allItems) {
-//       const s = extractStudent(it.filePath);
-//       counts[s] = (counts[s] || 0) + 1;
-//     }
-//     // also include base folders even with 0 questions
-//     // we'll ask the extension for them (below we pass them in)
-//     const allStudentNames = vscode.workspaceFoldersNames || [];
-//     for (const s of allStudentNames) {
-//       if (!(s in counts)) counts[s] = 0;
-//     }
-//     const max = Math.max(0, ...Object.values(counts));
-//     const tbody = document.querySelector('#studentTable tbody');
-//     tbody.innerHTML = '';
-//     for (const [name, num] of Object.entries(counts).sort()) {
-//       const tr = document.createElement('tr');
-//       tr.innerHTML = '<td>'+esc(name)+'</td><td>'+num+'</td>';
-//       if (num === max && max > 0) tr.className = 'green';
-//       else if (num === 0) tr.className = 'red';
-//       else tr.className = 'yellow';
-//       tbody.appendChild(tr);
-//     }
-//   }
-//   // ---------- UI bindings ----------
-//   document.getElementById('filterText').addEventListener('input', e => { filterText=e.target.value; currentPage=1; renderTable(); });
-//   document.getElementById('statusFilter').addEventListener('change', e => { statusFilter=e.target.value; currentPage=1; renderTable(); });
-//   document.getElementById('pageSize').addEventListener('change', e => { pageSize=parseInt(e.target.value,10); currentPage=1; renderTable(); });
-//   document.getElementById('prevPage').addEventListener('click', ()=>{ if(currentPage>1){currentPage--; renderTable();} });
-//   document.getElementById('nextPage').addEventListener('click', ()=>{ const maxP=Math.max(1,Math.ceil(applyFilters().length/pageSize)); if(currentPage<maxP){currentPage++; renderTable();} });
-//   document.getElementById('refresh').addEventListener('click', ()=>vscode.postMessage({command:'refresh'}));
-//   document.getElementById('toggleStudents').addEventListener('click', ()=>{
-//     const div=document.getElementById('studentSummary');
-//     div.style.display = div.style.display==='none' ? 'block' : 'none';
-//     if (div.style.display==='block') renderStudents();
-//   });
-//   // Let extension inject folder names
-//   window.addEventListener('message', event => {
-//     if (event.data && event.data.studentFolders) {
-//       vscode.workspaceFoldersNames = event.data.studentFolders;
-//     }
-//   });
-//   renderTable();
-// </script>
-// </body>
-// </html>`;
-// }
 function getWebviewHtml(items, panel) {
     const nonce = makeId();
     const itemsJson = JSON.stringify(items || []);
@@ -371,14 +184,14 @@ function getWebviewHtml(items, panel) {
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Quiz: Questions & Answers</title>
 <style nonce="${nonce}">
-  :root { --muted:#666; --green:#c8f7c5; --yellow:#fff7b2; --red:#f7c5c5; }
+  :root { --muted:#666; --green:rgb(11, 163, 0); --yellow:rgb(255, 230, 2); --red:rgb(255, 0, 0); }
   body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; padding: 12px; }
   .controls { display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:12px; }
   input[type="text"], select { padding:6px 8px; font-size:13px; }
   button { padding:6px 8px; border-radius:6px; cursor:pointer; }
   .small-btn { padding:4px 6px; font-size:0.9em; margin-left:6px; }
-  table { width:100%; border-collapse:collapse; margin-top:8px; }
-  th, td { padding:8px; border:1px solid #ddd; vertical-align:top; text-align:left; }
+  table { width:100%; border-collapse:collapse; margin-top:8px; border: 1px solid black;}
+  th, td { padding:8px; border:1px solid #ddd; vertical-align:top; text-align:left; color:black; background: white; border: 1px solid black;}
   th { background:#f5f5f5; }
   pre { margin:0; white-space:pre-wrap; word-break:break-word; background:#f8f8f8; padding:8px; border-radius:4px; max-height:160px; overflow:auto; }
   .muted { color: var(--muted); font-size:0.9em; }
@@ -387,7 +200,7 @@ function getWebviewHtml(items, panel) {
   #studentSummary table { width:100%; border-collapse:collapse; }
   #studentTable th, #studentTable td { padding:6px 10px; border:1px solid #eee; }
   .student-row { cursor:pointer; }
-  .student-selected { outline: 2px solid #0066cc; }
+  .student-selected { outline: 2px solid #0066cc;}
   .num-green { background: var(--green); font-weight:bold; text-align:center; }
   .num-yellow { background: var(--yellow); font-weight:bold; text-align:center; }
   .num-cell { width:6%; }
@@ -738,49 +551,49 @@ function activate(context) {
         const nonce = makeId();
         // Build HTML with plain JS (no TS type assertions)
         panel.webview.html = `<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy"
-      content="default-src 'none'; style-src 'nonce-${nonce}'; script-src 'nonce-${nonce}';">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Add Question</title>
-<style nonce="${nonce}">
-  body { font-family: sans-serif; padding: 16px; }
-  pre  { background:#f8f8f8; padding:8px; border-radius:4px; max-height:200px; overflow:auto; }
-  textarea { width:100%; min-height:120px; margin-top:8px; padding:8px; font-family:inherit; font-size:14px; }
-  .buttons { margin-top:12px; display:flex; gap:8px; }
-  button { padding:6px 12px; border-radius:6px; cursor:pointer; border:none; }
-  .save { background:#4caf50; color:white; }
-  .cancel { background:#ccc; }
-</style>
-</head>
-<body>
-  <h2>Add Question</h2>
-  <p><strong>File:</strong> ${escapeHtml(relPath)}</p>
-  <p><strong>Selected Code:</strong></p>
-  <pre>${escapeHtml(snippet)}</pre>
+        <html lang="en">
+        <head>
+        <meta charset="utf-8">
+        <meta http-equiv="Content-Security-Policy"
+              content="default-src 'none'; style-src 'nonce-${nonce}'; script-src 'nonce-${nonce}';">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Add Question</title>
+        <style nonce="${nonce}">
+          body { font-family: sans-serif; padding: 16px; }
+          pre  { background:#f8f8f8; padding:8px; border-radius:4px; max-height:200px; overflow:auto; }
+          textarea { width:100%; min-height:120px; margin-top:8px; padding:8px; font-family:inherit; font-size:14px; }
+          .buttons { margin-top:12px; display:flex; gap:8px; }
+          button { padding:6px 12px; border-radius:6px; cursor:pointer; border:none; }
+          .save { background:#4caf50; color:white; }
+          .cancel { background:#ccc; }
+        </style>
+        </head>
+        <body>
+          <h2>Add Question</h2>
+          <p><strong>File:</strong> ${escapeHtml(relPath)}</p>
+          <p><strong>Selected Code:</strong></p>
+          <pre>${escapeHtml(snippet)}</pre>
 
-  <label for="question">Your question:</label>
-  <textarea id="question" placeholder="Type your question here"></textarea>
+          <label for="question">Your question:</label>
+          <textarea id="question" placeholder="Type your question here"></textarea>
 
-  <div class="buttons">
-    <button class="save" id="save">Save</button>
-    <button class="cancel" id="cancel">Cancel</button>
-  </div>
+          <div class="buttons">
+            <button class="save" id="save">Save</button>
+            <button class="cancel" id="cancel">Cancel</button>
+          </div>
 
-<script nonce="${nonce}">
-  const vscode = acquireVsCodeApi();
-  document.getElementById('save').addEventListener('click', () => {
-    const q = document.getElementById('question').value.trim();
-    vscode.postMessage({ command: 'save', question: q });
-  });
-  document.getElementById('cancel').addEventListener('click', () => {
-    vscode.postMessage({ command: 'cancel' });
-  });
-</script>
-</body>
-</html>`;
+        <script nonce="${nonce}">
+          const vscode = acquireVsCodeApi();
+          document.getElementById('save').addEventListener('click', () => {
+            const q = document.getElementById('question').value.trim();
+            vscode.postMessage({ command: 'save', question: q });
+          });
+          document.getElementById('cancel').addEventListener('click', () => {
+            vscode.postMessage({ command: 'cancel' });
+          });
+        </script>
+        </body>
+        </html>`;
         // Handle messages from the webview
         panel.webview.onDidReceiveMessage((msg) => __awaiter(this, void 0, void 0, function* () {
             if (msg.command === "cancel") {
@@ -813,6 +626,52 @@ function activate(context) {
             }
         }), undefined, context.subscriptions);
     })));
+    context.subscriptions.push(vscode.commands.registerCommand("quiz.createConfigFile", () => __awaiter(this, void 0, void 0, function* () {
+        if (!vscode.workspace.workspaceFolders || vscode.workspace.workspaceFolders.length === 0) {
+            vscode.window.showErrorMessage("Open a workspace folder first.");
+            return;
+        }
+        const root = vscode.workspace.workspaceFolders[0].uri.fsPath;
+        const target = path.join(root, "cqlc.config.json");
+        // The default content
+        const configContent = {
+            title: " Brother",
+            topic: "Variable",
+            folder: "Brother",
+            pl_root: "/Users/benedictoseisefa/Desktop/pl-gvsu-cis500dev-master",
+            pl_question_root: "PersonalQuiz",
+            pl_assessment_root: "courseInstances/TemplateCourseInstance/assessments",
+            set: "Custom Quiz",
+            number: "2",
+            quiz_directory_name: "cis371_server",
+            points_per_question: 10,
+            startDate: "2025-03-22T10:30:00",
+            endDate: "2025-03-22T16:30:40",
+            timeLimitMin: 30,
+            daysForGrading: 7,
+            reviewEndDate: "2025-04-21T23:59:59",
+            password: "letMeIn",
+            language: "python",
+            studentNameMapping: {
+                benedictosefaosei: "oseisefb@mail.gvsu.edu",
+                william_williams: "williamsw@mail.gvsu.edu",
+                sam: "sam.test@mail.gvsu.edu",
+                antonio: "anto.test@ug.edu.gh",
+                caleb: "caleb.test@ug.edu.gh"
+            }
+        };
+        try {
+            // Create or overwrite
+            yield fs.promises.writeFile(target, JSON.stringify(configContent, null, 2), "utf8");
+            vscode.window.showInformationMessage(`Created ${path.basename(target)} at workspace root.`);
+            // Optionally open it in an editor
+            const doc = yield vscode.workspace.openTextDocument(target);
+            vscode.window.showTextDocument(doc);
+        }
+        catch (err) {
+            vscode.window.showErrorMessage(`Failed to create config file: ${err.message}`);
+        }
+    })));
     // Edit question command - accepts a QAItem or prompts if none
     context.subscriptions.push(vscode.commands.registerCommand("extension.editQuestion", (itemArg) => __awaiter(this, void 0, void 0, function* () {
         let item = itemArg;
@@ -831,43 +690,43 @@ function activate(context) {
         const panel = vscode.window.createWebviewPanel("quizEditQuestion", "Edit Question", vscode.ViewColumn.Beside, { enableScripts: true });
         const nonce = makeId();
         panel.webview.html = `<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy"
-      content="default-src 'none'; style-src 'nonce-${nonce}'; script-src 'nonce-${nonce}';">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Edit Question</title>
-<style nonce="${nonce}">
-  body { font-family:sans-serif; padding:16px; }
-  textarea { width:100%; min-height:120px; margin-top:8px; padding:8px; font-family:inherit; font-size:14px; }
-  .buttons { margin-top:12px; display:flex; gap:8px; }
-  button { padding:6px 12px; border-radius:6px; cursor:pointer; border:none; }
-  .save { background:#4caf50; color:white; }
-  .cancel { background:#ccc; }
-</style>
-</head>
-<body>
-  <h2>Edit Question</h2>
-  <p><strong>File:</strong> ${escapeHtml(item.filePath)}</p>
-  <label for="question">Question:</label>
-  <textarea id="question">${escapeHtml(item.question)}</textarea>
-  <div class="buttons">
-    <button class="save" id="save">Save</button>
-    <button class="cancel" id="cancel">Cancel</button>
-  </div>
-<script nonce="${nonce}">
-  const vscode = acquireVsCodeApi();
-  document.getElementById('save').addEventListener('click', () => {
-    const q = document.getElementById('question').value.trim();
-    vscode.postMessage({ command: 'save', question: q });
-  });
-  document.getElementById('cancel').addEventListener('click', () => {
-    vscode.postMessage({ command: 'cancel' });
-  });
-</script>
-</body>
-</html>`;
+        <html>
+        <head>
+        <meta charset="utf-8">
+        <meta http-equiv="Content-Security-Policy"
+              content="default-src 'none'; style-src 'nonce-${nonce}'; script-src 'nonce-${nonce}';">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Edit Question</title>
+        <style nonce="${nonce}">
+          body { font-family:sans-serif; padding:16px; }
+          textarea { width:100%; min-height:120px; margin-top:8px; padding:8px; font-family:inherit; font-size:14px; }
+          .buttons { margin-top:12px; display:flex; gap:8px; }
+          button { padding:6px 12px; border-radius:6px; cursor:pointer; border:none; }
+          .save { background:#4caf50; color:white; }
+          .cancel { background:#ccc; }
+        </style>
+        </head>
+        <body>
+          <h2>Edit Question</h2>
+          <p><strong>File:</strong> ${escapeHtml(item.filePath)}</p>
+          <label for="question">Question:</label>
+          <textarea id="question">${escapeHtml(item.question)}</textarea>
+          <div class="buttons">
+            <button class="save" id="save">Save</button>
+            <button class="cancel" id="cancel">Cancel</button>
+          </div>
+        <script nonce="${nonce}">
+          const vscode = acquireVsCodeApi();
+          document.getElementById('save').addEventListener('click', () => {
+            const q = document.getElementById('question').value.trim();
+            vscode.postMessage({ command: 'save', question: q });
+          });
+          document.getElementById('cancel').addEventListener('click', () => {
+            vscode.postMessage({ command: 'cancel' });
+          });
+        </script>
+        </body>
+        </html>`;
         panel.webview.onDidReceiveMessage((msg) => __awaiter(this, void 0, void 0, function* () {
             if (msg.command === "cancel") {
                 panel.dispose();
@@ -946,43 +805,43 @@ function activate(context) {
         const panel = vscode.window.createWebviewPanel("quizEditAnswer", "Edit Answer", vscode.ViewColumn.Beside, { enableScripts: true });
         const nonce = makeId();
         panel.webview.html = `<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy"
-      content="default-src 'none'; style-src 'nonce-${nonce}'; script-src 'nonce-${nonce}';">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Edit Answer</title>
-<style nonce="${nonce}">
-  body { font-family:sans-serif; padding:16px; }
-  textarea { width:100%; min-height:120px; margin-top:8px; padding:8px; font-family:inherit; font-size:14px; }
-  .buttons { margin-top:12px; display:flex; gap:8px; }
-  button { padding:6px 12px; border-radius:6px; cursor:pointer; border:none; }
-  .save { background:#4caf50; color:white; }
-  .cancel { background:#ccc; }
-</style>
-</head>
-<body>
-  <h2>Edit Answer</h2>
-  <p><strong>File:</strong> ${escapeHtml(item.filePath)}</p>
-  <label for="answer">Answer:</label>
-  <textarea id="answer">${escapeHtml(item.answer || "")}</textarea>
-  <div class="buttons">
-    <button class="save" id="save">Save</button>
-    <button class="cancel" id="cancel">Cancel</button>
-  </div>
-<script nonce="${nonce}">
-  const vscode = acquireVsCodeApi();
-  document.getElementById('save').addEventListener('click', () => {
-    const a = document.getElementById('answer').value.trim();
-    vscode.postMessage({ command: 'save', answer: a });
-  });
-  document.getElementById('cancel').addEventListener('click', () => {
-    vscode.postMessage({ command: 'cancel' });
-  });
-</script>
-</body>
-</html>`;
+        <html>
+        <head>
+        <meta charset="utf-8">
+        <meta http-equiv="Content-Security-Policy"
+              content="default-src 'none'; style-src 'nonce-${nonce}'; script-src 'nonce-${nonce}';">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Edit Answer</title>
+        <style nonce="${nonce}">
+          body { font-family:sans-serif; padding:16px; }
+          textarea { width:100%; min-height:120px; margin-top:8px; padding:8px; font-family:inherit; font-size:14px; }
+          .buttons { margin-top:12px; display:flex; gap:8px; }
+          button { padding:6px 12px; border-radius:6px; cursor:pointer; border:none; }
+          .save { background:#4caf50; color:white; }
+          .cancel { background:#ccc; }
+        </style>
+        </head>
+        <body>
+          <h2>Edit Answer</h2>
+          <p><strong>File:</strong> ${escapeHtml(item.filePath)}</p>
+          <label for="answer">Answer:</label>
+          <textarea id="answer">${escapeHtml(item.answer || "")}</textarea>
+          <div class="buttons">
+            <button class="save" id="save">Save</button>
+            <button class="cancel" id="cancel">Cancel</button>
+          </div>
+        <script nonce="${nonce}">
+          const vscode = acquireVsCodeApi();
+          document.getElementById('save').addEventListener('click', () => {
+            const a = document.getElementById('answer').value.trim();
+            vscode.postMessage({ command: 'save', answer: a });
+          });
+          document.getElementById('cancel').addEventListener('click', () => {
+            vscode.postMessage({ command: 'cancel' });
+          });
+        </script>
+        </body>
+        </html>`;
         panel.webview.onDidReceiveMessage((msg) => __awaiter(this, void 0, void 0, function* () {
             if (msg.command === "cancel") {
                 panel.dispose();
@@ -1060,7 +919,496 @@ function activate(context) {
             }
         }), undefined, context.subscriptions);
     })));
-    // When extension starts, ensure storage exists (no overwrite) and refresh decorations
+    //   context.subscriptions.push(
+    //   vscode.commands.registerCommand("extension.generateQA", async () => {
+    //     const ws = vscode.workspace.workspaceFolders?.[0];
+    //     if (!ws) {
+    //       vscode.window.showErrorMessage("No workspace folder is open.");
+    //       return;
+    //     }
+    //     const rootPath = ws.uri.fsPath;
+    //     const quizFile = path.join(rootPath, ".vscode", "quiz-questions.json");
+    //     if (!fs.existsSync(quizFile)) {
+    //       vscode.window.showErrorMessage("No quiz-questions.json found in .vscode folder.");
+    //       return;
+    //     }
+    //     // load questions
+    //     let questionsData: QAItem[];
+    //     try {
+    //       questionsData = JSON.parse(fs.readFileSync(quizFile, "utf8"));
+    //       if (!questionsData.length) {
+    //         vscode.window.showErrorMessage("quiz-questions.json exists but contains no questions.");
+    //         return;
+    //       }
+    //     } catch (err: any) {
+    //       vscode.window.showErrorMessage(`Error reading quiz-questions.json: ${err.message}`);
+    //       return;
+    //     }
+    //     // load config
+    //     const configPath = path.join(rootPath, "cqlc.config.json");
+    //     if (!fs.existsSync(configPath)) {
+    //       vscode.window.showErrorMessage("Config file cqlc.config.json not found in the workspace root.");
+    //       return;
+    //     }
+    //     let config: any;
+    //     try {
+    //       config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+    //     } catch (err: any) {
+    //       vscode.window.showErrorMessage(`Error reading config file: ${err.message}`);
+    //       return;
+    //     }
+    //     const requiredFields = [
+    //       "title", "topic", "folder", "pl_root", "pl_question_root", "pl_assessment_root",
+    //       "set", "number", "points_per_question", "startDate", "endDate",
+    //       "timeLimitMin", "daysForGrading", "reviewEndDate", "language"
+    //     ];
+    //     for (const field of requiredFields) {
+    //       if (!config[field]) {
+    //         vscode.window.showErrorMessage(`Missing required field in config: ${field}`);
+    //         return;
+    //       }
+    //     }
+    //     // build base output paths
+    //     const questionsRoot = path.join(config.pl_root, "questions", config.pl_question_root, config.folder);
+    //     const assessmentsRoot = path.join(config.pl_root, config.pl_assessment_root, config.folder);
+    //     const instructorRoot = path.join(questionsRoot, "instructor");
+    //     const instructorAssessRoot = path.join(assessmentsRoot, "instructor");
+    //     [questionsRoot, assessmentsRoot, instructorRoot, instructorAssessRoot].forEach(p => {
+    //       if (!fs.existsSync(p)) fs.mkdirSync(p, { recursive: true });
+    //     });
+    //     // group questions by student folder (first segment of filePath)
+    //     const questionsByStudent: Record<string, QAItem[]> = {};
+    //     for (const q of questionsData) {
+    //       const studentName = (q.filePath || "").split(/[\\/]/)[0] || "unknown_student";
+    //       if (!questionsByStudent[studentName]) questionsByStudent[studentName] = [];
+    //       questionsByStudent[studentName].push(q);
+    //     }
+    //     // generate student-specific files
+    //     for (const [student, qs] of Object.entries(questionsByStudent)) {
+    //       const studentQPath = path.join(questionsRoot, student);
+    //       const studentAssessPath = path.join(assessmentsRoot, student);
+    //       if (!fs.existsSync(studentQPath)) fs.mkdirSync(studentQPath, { recursive: true });
+    //       if (!fs.existsSync(studentAssessPath)) fs.mkdirSync(studentAssessPath, { recursive: true });
+    //       // create subfolder for each question
+    //       qs.forEach((question, index) => {
+    //         const questionFolder = path.join(studentQPath, `question${index + 1}`);
+    //         if (!fs.existsSync(questionFolder)) fs.mkdirSync(questionFolder, { recursive: true });
+    //         const outFile = path.join(questionFolder, `question${index + 1}.json`);
+    //         fs.writeFileSync(outFile, JSON.stringify(question, null, 2), "utf8");
+    //       });
+    //       // Generate infoAssessment.json for this student
+    //       const infoAssessment = {
+    //         uuid: generateUUID(), // You'll need to implement this function
+    //         type: "Exam",
+    //         title: config.title,
+    //         set: config.set,
+    //         number: config.number,
+    //         allowAccess: [
+    //           {
+    //             mode: "Public",
+    //             uids: [student],
+    //             credit: 100,
+    //             timeLimitMin: config.timeLimitMin,
+    //             startDate: config.startDate,
+    //             endDate: config.endDate,
+    //             password: "letMeIn"
+    //           },
+    //           {
+    //             mode: "Public",
+    //             credit: 0,
+    //             startDate: config.reviewEndDate ? new Date(new Date(config.reviewEndDate).getTime() + 24 * 60 * 60 * 1000).toISOString() : new Date(new Date(config.endDate).getTime() + 24 * 60 * 60 * 1000).toISOString(),
+    //             endDate: new Date(new Date(config.endDate).getTime() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+    //             active: false
+    //           }
+    //         ],
+    //         zones: [
+    //           {
+    //             questions: qs.map((_, index) => ({
+    //               id: `${config.pl_question_root}/${config.folder}/${student}/question${index + 1}`,
+    //               points: config.points_per_question
+    //             }))
+    //           }
+    //         ]
+    //       };
+    //       const assessmentFile = path.join(studentAssessPath, "infoAssessment.json");
+    //       fs.writeFileSync(assessmentFile, JSON.stringify(infoAssessment, null, 2), "utf8");
+    //     }
+    //     vscode.window.showInformationMessage("Generated QA files with question subfolders and infoAssessment.json for all students.");
+    //   })
+    // );
+    //   context.subscriptions.push(
+    //   vscode.commands.registerCommand("extension.generateQA", async () => {
+    //     const ws = vscode.workspace.workspaceFolders?.[0];
+    //     if (!ws) {
+    //       vscode.window.showErrorMessage("No workspace folder is open.");
+    //       return;
+    //     }
+    //     const rootPath = ws.uri.fsPath;
+    //     const quizFile = path.join(rootPath, ".vscode", "quiz-questions.json");
+    //     if (!fs.existsSync(quizFile)) {
+    //       vscode.window.showErrorMessage("No quiz-questions.json found in .vscode folder.");
+    //       return;
+    //     }
+    //     // load questions
+    //     let questionsData: any[];
+    //     try {
+    //       questionsData = JSON.parse(fs.readFileSync(quizFile, "utf8"));
+    //       if (!questionsData.length) {
+    //         vscode.window.showErrorMessage("quiz-questions.json exists but contains no questions.");
+    //         return;
+    //       }
+    //     } catch (err: any) {
+    //       vscode.window.showErrorMessage(`Error reading quiz-questions.json: ${err.message}`);
+    //       return;
+    //     }
+    //     // load config
+    //     const configPath = path.join(rootPath, "cqlc.config.json");
+    //     if (!fs.existsSync(configPath)) {
+    //       vscode.window.showErrorMessage("Config file cqlc.config.json not found in the workspace root.");
+    //       return;
+    //     }
+    //     let config: any;
+    //     try {
+    //       config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+    //     } catch (err: any) {
+    //       vscode.window.showErrorMessage(`Error reading config file: ${err.message}`);
+    //       return;
+    //     }
+    //     const requiredFields = [
+    //       "title", "topic", "folder", "pl_root", "pl_question_root", "pl_assessment_root",
+    //       "set", "number", "points_per_question", "startDate", "endDate",
+    //       "timeLimitMin", "daysForGrading", "reviewEndDate", "language"
+    //     ];
+    //     for (const field of requiredFields) {
+    //       if (!config[field]) {
+    //         vscode.window.showErrorMessage(`Missing required field in config: ${field}`);
+    //         return;
+    //       }
+    //     }
+    //     // build base output paths
+    //     const questionsRoot = path.join(config.pl_root, "questions", config.pl_question_root, config.folder);
+    //     const assessmentsRoot = path.join(config.pl_root, config.pl_assessment_root, config.folder);
+    //     const instructorRoot = path.join(questionsRoot, "instructor");
+    //     const instructorAssessRoot = path.join(assessmentsRoot, "instructor");
+    //     [questionsRoot, assessmentsRoot, instructorRoot, instructorAssessRoot].forEach(p => {
+    //       if (!fs.existsSync(p)) fs.mkdirSync(p, { recursive: true });
+    //     });
+    //     // group questions by student folder (first segment of filePath)
+    //     const questionsByStudent: Record<string, any[]> = {};
+    //     for (const q of questionsData) {
+    //       const studentName = (q.filePath || "").split(/[\\/]/)[0] || "unknown_student";
+    //       if (!questionsByStudent[studentName]) questionsByStudent[studentName] = [];
+    //       questionsByStudent[studentName].push(q);
+    //     }
+    //     // generate student-specific files
+    //     for (const [student, qs] of Object.entries(questionsByStudent)) {
+    //       const studentQPath = path.join(questionsRoot, student);
+    //       const studentAssessPath = path.join(assessmentsRoot, student);
+    //       if (!fs.existsSync(studentQPath)) fs.mkdirSync(studentQPath, { recursive: true });
+    //       if (!fs.existsSync(studentAssessPath)) fs.mkdirSync(studentAssessPath, { recursive: true });
+    //       // create subfolder for each question
+    //       qs.forEach((question, index) => {
+    //         const questionFolder = path.join(studentQPath, `question${index + 1}`);
+    //         if (!fs.existsSync(questionFolder)) fs.mkdirSync(questionFolder, { recursive: true });
+    //         // Debug: Show what properties are available in the question object
+    //         console.log('Question properties:', Object.keys(question));
+    //         console.log('Question content:', question);
+    //         // Create question.html file - using the actual properties from your data
+    //         const questionText = question.question || question.text || question.content || "No question content available.";
+    //         const codeSnippet = question.code || question.highlightedCode || question.snippet || "// No code highlighted";
+    //         const questionHtmlContent = `
+    // <pl-question-panel>
+    // <markdown>
+    // ${questionText}
+    // </markdown>
+    //     <pl-code language="${config.language || 'python'}">
+    // ${codeSnippet}
+    // </pl-code>
+    // </pl-question-panel>
+    // `.trim();
+    //         const questionHtmlFile = path.join(questionFolder, "question.html");
+    //         fs.writeFileSync(questionHtmlFile, questionHtmlContent, "utf8");
+    //         // Create info.json file
+    //         const questionInfo = {
+    //           uuid: generateUUID(),
+    //           type: "v3",
+    //           gradingMethod: "Manual",
+    //           title: config.title,
+    //           topic: config.topic
+    //         };
+    //         const infoJsonFile = path.join(questionFolder, "info.json");
+    //         fs.writeFileSync(infoJsonFile, JSON.stringify(questionInfo, null, 2), "utf8");
+    //       });
+    //       // Generate infoAssessment.json for this student
+    //       const infoAssessment = {
+    //         uuid: generateUUID(),
+    //         type: "Exam",
+    //         title: config.title,
+    //         set: config.set,
+    //         number: config.number,
+    //         allowAccess: [
+    //           {
+    //             mode: "Public",
+    //             uids: [student],
+    //             credit: 100,
+    //             timeLimitMin: config.timeLimitMin,
+    //             startDate: config.startDate,
+    //             endDate: config.endDate,
+    //             password: "letMeIn"
+    //           },
+    //           {
+    //             mode: "Public",
+    //             credit: 0,
+    //             startDate: config.reviewEndDate ? new Date(new Date(config.reviewEndDate).getTime() + 24 * 60 * 60 * 1000).toISOString() : new Date(new Date(config.endDate).getTime() + 24 * 60 * 60 * 1000).toISOString(),
+    //             endDate: new Date(new Date(config.endDate).getTime() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+    //             active: false
+    //           }
+    //         ],
+    //         zones: [
+    //           {
+    //             questions: qs.map((_, index) => ({
+    //               id: `${config.pl_question_root}/${config.folder}/${student}/question${index + 1}`,
+    //               points: config.points_per_question
+    //             }))
+    //           }
+    //         ]
+    //       };
+    //       const assessmentFile = path.join(studentAssessPath, "infoAssessment.json");
+    //       fs.writeFileSync(assessmentFile, JSON.stringify(infoAssessment, null, 2), "utf8");
+    //     }
+    //     vscode.window.showInformationMessage("Generated QA files with question.html, info.json, and infoAssessment.json for all students.");
+    //   })
+    // );
+    context.subscriptions.push(vscode.commands.registerCommand("extension.generateQA", () => __awaiter(this, void 0, void 0, function* () {
+        var _a;
+        const ws = (_a = vscode.workspace.workspaceFolders) === null || _a === void 0 ? void 0 : _a[0];
+        if (!ws) {
+            vscode.window.showErrorMessage("No workspace folder is open.");
+            return;
+        }
+        const rootPath = ws.uri.fsPath;
+        const quizFile = path.join(rootPath, ".vscode", "quiz-questions.json");
+        if (!fs.existsSync(quizFile)) {
+            vscode.window.showErrorMessage("No quiz-questions.json found in .vscode folder.");
+            return;
+        }
+        // load questions
+        let questionsData;
+        try {
+            questionsData = JSON.parse(fs.readFileSync(quizFile, "utf8"));
+            if (!questionsData.length) {
+                vscode.window.showErrorMessage("quiz-questions.json exists but contains no questions.");
+                return;
+            }
+        }
+        catch (err) {
+            vscode.window.showErrorMessage(`Error reading quiz-questions.json: ${err.message}`);
+            return;
+        }
+        // load config
+        const configPath = path.join(rootPath, "cqlc.config.json");
+        if (!fs.existsSync(configPath)) {
+            vscode.window.showErrorMessage("Config file cqlc.config.json not found in the workspace root.");
+            return;
+        }
+        let config;
+        try {
+            config = JSON.parse(fs.readFileSync(configPath, "utf8"));
+        }
+        catch (err) {
+            vscode.window.showErrorMessage(`Error reading config file: ${err.message}`);
+            return;
+        }
+        const requiredFields = [
+            "title", "topic", "folder", "pl_root", "pl_question_root", "pl_assessment_root",
+            "set", "number", "points_per_question", "startDate", "endDate",
+            "timeLimitMin", "daysForGrading", "reviewEndDate", "language"
+        ];
+        for (const field of requiredFields) {
+            if (!config[field]) {
+                vscode.window.showErrorMessage(`Missing required field in config: ${field}`);
+                return;
+            }
+        }
+        // build base output paths
+        const questionsRoot = path.join(config.pl_root, "questions", config.pl_question_root, config.folder);
+        const assessmentsRoot = path.join(config.pl_root, config.pl_assessment_root, config.folder);
+        const instructorRoot = path.join(questionsRoot, "instructor");
+        const instructorAssessRoot = path.join(assessmentsRoot, "instructor");
+        [questionsRoot, assessmentsRoot, instructorRoot, instructorAssessRoot].forEach(p => {
+            if (!fs.existsSync(p))
+                fs.mkdirSync(p, { recursive: true });
+        });
+        // group questions by student folder (first segment of filePath)
+        const questionsByStudent = {};
+        for (const q of questionsData) {
+            const studentName = (q.filePath || "").split(/[\\/]/)[0] || "unknown_student";
+            if (!questionsByStudent[studentName])
+                questionsByStudent[studentName] = [];
+            questionsByStudent[studentName].push(q);
+        }
+        // generate student-specific files
+        for (const [student, qs] of Object.entries(questionsByStudent)) {
+            const studentQPath = path.join(questionsRoot, student);
+            const studentAssessPath = path.join(assessmentsRoot, student);
+            if (!fs.existsSync(studentQPath))
+                fs.mkdirSync(studentQPath, { recursive: true });
+            if (!fs.existsSync(studentAssessPath))
+                fs.mkdirSync(studentAssessPath, { recursive: true });
+            // create subfolder for each question
+            qs.forEach((question, index) => {
+                const questionFolder = path.join(studentQPath, `question${index + 1}`);
+                if (!fs.existsSync(questionFolder))
+                    fs.mkdirSync(questionFolder, { recursive: true });
+                // Create question.html file
+                const questionText = question.question || question.text || question.content || "No question content available.";
+                const codeSnippet = question.code || question.highlightedCode || question.snippet || "// No code highlighted";
+                const questionHtmlContent = `
+<pl-question-panel>
+<markdown>
+${questionText}
+</markdown>
+    <pl-code language="${config.language || 'python'}">
+${codeSnippet}
+</pl-code>
+</pl-question-panel>
+`.trim();
+                const questionHtmlFile = path.join(questionFolder, "question.html");
+                fs.writeFileSync(questionHtmlFile, questionHtmlContent, "utf8");
+                // Create info.json file
+                const questionInfo = {
+                    uuid: generateUUID(),
+                    type: "v3",
+                    gradingMethod: "Manual",
+                    title: config.title,
+                    topic: config.topic
+                };
+                const infoJsonFile = path.join(questionFolder, "info.json");
+                fs.writeFileSync(infoJsonFile, JSON.stringify(questionInfo, null, 2), "utf8");
+            });
+            // Generate infoAssessment.json for this student
+            const infoAssessment = {
+                uuid: generateUUID(),
+                type: "Exam",
+                title: config.title,
+                set: config.set,
+                number: config.number,
+                allowAccess: [
+                    {
+                        mode: "Public",
+                        uids: [student],
+                        credit: 100,
+                        timeLimitMin: config.timeLimitMin,
+                        startDate: config.startDate,
+                        endDate: config.endDate,
+                        password: "letMeIn"
+                    },
+                    {
+                        mode: "Public",
+                        credit: 0,
+                        startDate: config.reviewEndDate ? new Date(new Date(config.reviewEndDate).getTime() + 24 * 60 * 60 * 1000).toISOString() : new Date(new Date(config.endDate).getTime() + 24 * 60 * 60 * 1000).toISOString(),
+                        endDate: new Date(new Date(config.endDate).getTime() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+                        active: false
+                    }
+                ],
+                zones: [
+                    {
+                        questions: qs.map((_, index) => ({
+                            id: `${config.pl_question_root}/${config.folder}/${student}/question${index + 1}`,
+                            points: config.points_per_question
+                        }))
+                    }
+                ]
+            };
+            const assessmentFile = path.join(studentAssessPath, "infoAssessment.json");
+            fs.writeFileSync(assessmentFile, JSON.stringify(infoAssessment, null, 2), "utf8");
+        }
+        // Create combined instructor files
+        const combinedQuestionsFolder = path.join(instructorRoot, "combined-questions");
+        if (!fs.existsSync(combinedQuestionsFolder)) {
+            fs.mkdirSync(combinedQuestionsFolder, { recursive: true });
+        }
+        // Build combined question.html content
+        let combinedHtmlContent = `
+<pl-question-panel>
+<markdown>
+# ${config.title} - All Student Questions
+<hr><br>
+</markdown>
+</pl-question-panel>
+`.trim();
+        // Add all questions from all students
+        for (const [student, qs] of Object.entries(questionsByStudent)) {
+            combinedHtmlContent += `
+<pl-question-panel>
+<markdown>
+## Student: ${student}
+</markdown>
+</pl-question-panel>
+`;
+            qs.forEach((question, index) => {
+                const questionText = question.question || question.text || question.content || "No question content available.";
+                const codeSnippet = question.code || question.highlightedCode || question.snippet || "// No code highlighted";
+                combinedHtmlContent += `
+<pl-question-panel>
+<markdown>
+### Question ${index + 1}
+${questionText}
+</markdown>
+    <pl-code language="${config.language || 'python'}">
+${codeSnippet}
+</pl-code>
+</pl-question-panel>
+<br><hr><br>
+`;
+            });
+        }
+        // Write combined question.html
+        const combinedQuestionHtmlFile = path.join(combinedQuestionsFolder, "question.html");
+        fs.writeFileSync(combinedQuestionHtmlFile, combinedHtmlContent, "utf8");
+        // Create combined info.json
+        const combinedInfo = {
+            uuid: generateUUID(),
+            gradingMethod: "Manual",
+            type: "v3",
+            title: `${config.title} - All Questions`,
+            topic: config.topic
+        };
+        const combinedInfoJsonFile = path.join(combinedQuestionsFolder, "info.json");
+        fs.writeFileSync(combinedInfoJsonFile, JSON.stringify(combinedInfo, null, 2), "utf8");
+        // Create combined infoAssessment.json for instructor
+        const combinedAssessment = {
+            uuid: generateUUID(),
+            type: "Exam",
+            title: `${config.title} - Instructor View`,
+            set: config.set,
+            number: config.number,
+            allowAccess: [
+                {
+                    mode: "Public",
+                    uids: ["instructor"],
+                    credit: 100,
+                    timeLimitMin: 0,
+                    startDate: config.startDate,
+                    endDate: new Date(new Date(config.endDate).getTime() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+                    password: "instructorAccess"
+                }
+            ],
+            zones: [
+                {
+                    questions: [
+                        {
+                            id: `${config.pl_question_root}/${config.folder}/instructor/combined-questions`,
+                            points: 1
+                        }
+                    ]
+                }
+            ]
+        };
+        const combinedAssessmentFile = path.join(instructorAssessRoot, "infoAssessment.json");
+        fs.writeFileSync(combinedAssessmentFile, JSON.stringify(combinedAssessment, null, 2), "utf8");
+        vscode.window.showInformationMessage("Generated QA files with student questions, combined instructor view, and all assessment files.");
+    })));
     (() => __awaiter(this, void 0, void 0, function* () {
         yield ensureStorageDir().catch(() => { });
         yield refreshAllDecorations();
