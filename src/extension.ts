@@ -498,6 +498,13 @@ function getWebviewHtml(items: QAItem[], panel: vscode.WebviewPanel): string {
 
 
 
+// Add this function to your extension.ts
+export function getExtensionContext(): vscode.ExtensionContext | undefined {
+    return extensionContext;
+}
+
+// Make sure to store the context
+let extensionContext: vscode.ExtensionContext;
 
 
 
@@ -508,6 +515,8 @@ function getWebviewHtml(items: QAItem[], panel: vscode.WebviewPanel): string {
  */
 export function activate(context: vscode.ExtensionContext) {
   console.log("Quiz Annotator extension activated");
+
+  extensionContext = context;
 
   // ensure decoration type
   decorationType = createDecorationType();

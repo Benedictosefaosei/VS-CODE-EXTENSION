@@ -15,24 +15,27 @@ var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (
 }) : function(o, v) {
     o["default"] = v;
 });
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
-    __setModuleDefault(result, mod);
-    return result;
-};
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.deactivate = exports.activate = void 0;
+exports.getExtensionContext = getExtensionContext;
+exports.activate = activate;
+exports.deactivate = deactivate;
 const vscode = __importStar(require("vscode"));
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
@@ -62,79 +65,68 @@ function getStoragePath() {
         return undefined;
     return path.join(root, STORAGE_REL_PATH);
 }
-function ensureStorageDir() {
-    return __awaiter(this, void 0, void 0, function* () {
-        const sp = getStoragePath();
-        if (!sp)
-            throw new Error("Open a workspace folder first.");
-        const dir = path.dirname(sp);
-        yield fs.promises.mkdir(dir, { recursive: true });
-    });
+async function ensureStorageDir() {
+    const sp = getStoragePath();
+    if (!sp)
+        throw new Error("Open a workspace folder first.");
+    const dir = path.dirname(sp);
+    await fs.promises.mkdir(dir, { recursive: true });
 }
-function loadAll() {
-    return __awaiter(this, void 0, void 0, function* () {
-        const sp = getStoragePath();
-        if (!sp)
-            return [];
-        try {
-            const raw = yield fs.promises.readFile(sp, "utf8");
-            const items = JSON.parse(raw);
-            return Array.isArray(items) ? items : [];
-        }
-        catch (e) {
-            return [];
-        }
-    });
+async function loadAll() {
+    const sp = getStoragePath();
+    if (!sp)
+        return [];
+    try {
+        const raw = await fs.promises.readFile(sp, "utf8");
+        const items = JSON.parse(raw);
+        return Array.isArray(items) ? items : [];
+    }
+    catch (e) {
+        return [];
+    }
 }
-function saveAll(items) {
-    return __awaiter(this, void 0, void 0, function* () {
-        const sp = getStoragePath();
-        if (!sp)
-            throw new Error("Open a workspace folder first.");
-        yield ensureStorageDir();
-        yield fs.promises.writeFile(sp, JSON.stringify(items, null, 2), "utf8");
-    });
+async function saveAll(items) {
+    const sp = getStoragePath();
+    if (!sp)
+        throw new Error("Open a workspace folder first.");
+    await ensureStorageDir();
+    await fs.promises.writeFile(sp, JSON.stringify(items, null, 2), "utf8");
 }
 /**
  * Decorations
  */
 function createDecorationType() {
     return vscode.window.createTextEditorDecorationType({
-        backgroundColor: "rgba(102, 255, 102, 0.18)",
+        backgroundColor: "rgba(102, 255, 102, 0.18)", // soft green
         isWholeLine: false,
         borderRadius: "2px"
     });
 }
-function applyDecorationsToEditor(editor) {
-    var _a;
-    return __awaiter(this, void 0, void 0, function* () {
-        if (!editor)
-            return;
-        if (!decorationType)
-            decorationType = createDecorationType();
-        const docPath = vscode.workspace.asRelativePath(editor.document.uri);
-        const all = yield loadAll();
-        const decorations = [];
-        for (const it of all) {
-            // match by relative path
-            if (it.filePath === docPath) {
-                // guard positions
-                const start = new vscode.Position(Math.max(0, it.range.start.line), Math.max(0, it.range.start.character));
-                const end = new vscode.Position(Math.max(0, it.range.end.line), Math.max(0, it.range.end.character));
-                const range = new vscode.Range(start, end);
-                const hoverMessage = new vscode.MarkdownString(`**Question:** ${escapeMarkdown(it.question)}\n\n**Answer:** ${escapeMarkdown((_a = it.answer) !== null && _a !== void 0 ? _a : "(not answered)")}`);
-                decorations.push({ range, hoverMessage });
-            }
+async function applyDecorationsToEditor(editor) {
+    if (!editor)
+        return;
+    if (!decorationType)
+        decorationType = createDecorationType();
+    const docPath = vscode.workspace.asRelativePath(editor.document.uri);
+    const all = await loadAll();
+    const decorations = [];
+    for (const it of all) {
+        // match by relative path
+        if (it.filePath === docPath) {
+            // guard positions
+            const start = new vscode.Position(Math.max(0, it.range.start.line), Math.max(0, it.range.start.character));
+            const end = new vscode.Position(Math.max(0, it.range.end.line), Math.max(0, it.range.end.character));
+            const range = new vscode.Range(start, end);
+            const hoverMessage = new vscode.MarkdownString(`**Question:** ${escapeMarkdown(it.question)}\n\n**Answer:** ${escapeMarkdown(it.answer ?? "(not answered)")}`);
+            decorations.push({ range, hoverMessage });
         }
-        editor.setDecorations(decorationType, decorations);
-    });
+    }
+    editor.setDecorations(decorationType, decorations);
 }
-function refreshAllDecorations() {
-    return __awaiter(this, void 0, void 0, function* () {
-        for (const editor of vscode.window.visibleTextEditors) {
-            yield applyDecorationsToEditor(editor);
-        }
-    });
+async function refreshAllDecorations() {
+    for (const editor of vscode.window.visibleTextEditors) {
+        await applyDecorationsToEditor(editor);
+    }
 }
 function escapeHtml(s) {
     return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
@@ -146,26 +138,24 @@ function escapeMarkdown(s) {
 /**
  * Utility to open file at stored range
  */
-function openFileAt(item) {
-    return __awaiter(this, void 0, void 0, function* () {
-        const root = getWorkspaceRoot();
-        if (!root) {
-            vscode.window.showErrorMessage("Open a workspace folder first.");
-            return;
-        }
-        const fullPath = path.join(root, item.filePath);
-        try {
-            const doc = yield vscode.workspace.openTextDocument(fullPath);
-            const editor = yield vscode.window.showTextDocument(doc, { preview: false });
-            const posStart = new vscode.Position(item.range.start.line, item.range.start.character);
-            const posEnd = new vscode.Position(item.range.end.line, item.range.end.character);
-            editor.revealRange(new vscode.Range(posStart, posEnd), vscode.TextEditorRevealType.InCenter);
-            editor.selection = new vscode.Selection(posStart, posEnd);
-        }
-        catch (e) {
-            vscode.window.showErrorMessage("Could not open file: " + String(e));
-        }
-    });
+async function openFileAt(item) {
+    const root = getWorkspaceRoot();
+    if (!root) {
+        vscode.window.showErrorMessage("Open a workspace folder first.");
+        return;
+    }
+    const fullPath = path.join(root, item.filePath);
+    try {
+        const doc = await vscode.workspace.openTextDocument(fullPath);
+        const editor = await vscode.window.showTextDocument(doc, { preview: false });
+        const posStart = new vscode.Position(item.range.start.line, item.range.start.character);
+        const posEnd = new vscode.Position(item.range.end.line, item.range.end.character);
+        editor.revealRange(new vscode.Range(posStart, posEnd), vscode.TextEditorRevealType.InCenter);
+        editor.selection = new vscode.Selection(posStart, posEnd);
+    }
+    catch (e) {
+        vscode.window.showErrorMessage("Could not open file: " + String(e));
+    }
 }
 /**
  * Create a unique id
@@ -513,27 +503,34 @@ function getWebviewHtml(items, panel) {
 </body>
 </html>`;
 }
+// Add this function to your extension.ts
+function getExtensionContext() {
+    return extensionContext;
+}
+// Make sure to store the context
+let extensionContext;
 /**
  * Commands
  */
 function activate(context) {
     console.log("Quiz Annotator extension activated");
+    extensionContext = context;
     // ensure decoration type
     decorationType = createDecorationType();
     context.subscriptions.push(decorationType);
     // Apply decorations when active editor changes or documents open
-    context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(() => __awaiter(this, void 0, void 0, function* () {
-        yield refreshAllDecorations();
-    })));
-    context.subscriptions.push(vscode.workspace.onDidOpenTextDocument(() => __awaiter(this, void 0, void 0, function* () {
-        yield refreshAllDecorations();
-    })));
-    context.subscriptions.push(vscode.workspace.onDidChangeTextDocument(() => __awaiter(this, void 0, void 0, function* () {
+    context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(async () => {
+        await refreshAllDecorations();
+    }));
+    context.subscriptions.push(vscode.workspace.onDidOpenTextDocument(async () => {
+        await refreshAllDecorations();
+    }));
+    context.subscriptions.push(vscode.workspace.onDidChangeTextDocument(async () => {
         // After editing, re-apply decorations (they will follow ranges but could shift)
-        yield refreshAllDecorations();
-    })));
+        await refreshAllDecorations();
+    }));
     // Add Question on selection (fancy webview)
-    context.subscriptions.push(vscode.commands.registerCommand("extension.addQuestion", () => __awaiter(this, void 0, void 0, function* () {
+    context.subscriptions.push(vscode.commands.registerCommand("extension.addQuestion", async () => {
         const editor = vscode.window.activeTextEditor;
         if (!editor) {
             vscode.window.showErrorMessage("Open a file and select a portion of code first.");
@@ -595,7 +592,7 @@ function activate(context) {
         </body>
         </html>`;
         // Handle messages from the webview
-        panel.webview.onDidReceiveMessage((msg) => __awaiter(this, void 0, void 0, function* () {
+        panel.webview.onDidReceiveMessage(async (msg) => {
             if (msg.command === "cancel") {
                 panel.dispose();
                 return;
@@ -617,16 +614,16 @@ function activate(context) {
                     question: q,
                     askedAt: Date.now()
                 };
-                const all = yield loadAll();
+                const all = await loadAll();
                 all.push(item);
-                yield saveAll(all);
-                yield refreshAllDecorations();
+                await saveAll(all);
+                await refreshAllDecorations();
                 vscode.window.showInformationMessage("Question saved.");
                 panel.dispose();
             }
-        }), undefined, context.subscriptions);
-    })));
-    context.subscriptions.push(vscode.commands.registerCommand("quiz.createConfigFile", () => __awaiter(this, void 0, void 0, function* () {
+        }, undefined, context.subscriptions);
+    }));
+    context.subscriptions.push(vscode.commands.registerCommand("quiz.createConfigFile", async () => {
         if (!vscode.workspace.workspaceFolders || vscode.workspace.workspaceFolders.length === 0) {
             vscode.window.showErrorMessage("Open a workspace folder first.");
             return;
@@ -662,26 +659,26 @@ function activate(context) {
         };
         try {
             // Create or overwrite
-            yield fs.promises.writeFile(target, JSON.stringify(configContent, null, 2), "utf8");
+            await fs.promises.writeFile(target, JSON.stringify(configContent, null, 2), "utf8");
             vscode.window.showInformationMessage(`Created ${path.basename(target)} at workspace root.`);
             // Optionally open it in an editor
-            const doc = yield vscode.workspace.openTextDocument(target);
+            const doc = await vscode.workspace.openTextDocument(target);
             vscode.window.showTextDocument(doc);
         }
         catch (err) {
             vscode.window.showErrorMessage(`Failed to create config file: ${err.message}`);
         }
-    })));
+    }));
     // Edit question command - accepts a QAItem or prompts if none
-    context.subscriptions.push(vscode.commands.registerCommand("extension.editQuestion", (itemArg) => __awaiter(this, void 0, void 0, function* () {
+    context.subscriptions.push(vscode.commands.registerCommand("extension.editQuestion", async (itemArg) => {
         let item = itemArg;
         if (!item) {
-            const all = yield loadAll();
+            const all = await loadAll();
             if (all.length === 0) {
                 vscode.window.showInformationMessage("No questions found.");
                 return;
             }
-            const pick = yield vscode.window.showQuickPick(all.map((it) => ({ label: it.question, description: it.filePath, id: it.id })), { placeHolder: "Select a question to edit" });
+            const pick = await vscode.window.showQuickPick(all.map((it) => ({ label: it.question, description: it.filePath, id: it.id })), { placeHolder: "Select a question to edit" });
             if (!pick)
                 return;
             item = all.find((i) => i.id === pick.id);
@@ -727,7 +724,7 @@ function activate(context) {
         </script>
         </body>
         </html>`;
-        panel.webview.onDidReceiveMessage((msg) => __awaiter(this, void 0, void 0, function* () {
+        panel.webview.onDidReceiveMessage(async (msg) => {
             if (msg.command === "cancel") {
                 panel.dispose();
                 return;
@@ -738,29 +735,29 @@ function activate(context) {
                     vscode.window.showErrorMessage("Question cannot be empty.");
                     return;
                 }
-                const all = yield loadAll();
+                const all = await loadAll();
                 const idx = all.findIndex(x => x.id === item.id);
                 if (idx >= 0) {
                     all[idx].question = q;
-                    yield saveAll(all);
-                    yield refreshAllDecorations();
+                    await saveAll(all);
+                    await refreshAllDecorations();
                     vscode.window.showInformationMessage("Question updated.");
                 }
                 panel.dispose();
             }
-        }), undefined, context.subscriptions);
-    })));
+        }, undefined, context.subscriptions);
+    }));
     // Answer question (pick unanswered) - unchanged behavior when called directly
-    context.subscriptions.push(vscode.commands.registerCommand("extension.answerQuestion", (itemArg) => __awaiter(this, void 0, void 0, function* () {
+    context.subscriptions.push(vscode.commands.registerCommand("extension.answerQuestion", async (itemArg) => {
         let item = itemArg;
-        const all = yield loadAll();
+        const all = await loadAll();
         if (!item) {
             const unanswered = all.filter((i) => !i.answer);
             if (unanswered.length === 0) {
                 vscode.window.showInformationMessage("No unanswered questions found.");
                 return;
             }
-            const pick = yield vscode.window.showQuickPick(unanswered.map((it) => ({ label: it.question, description: it.filePath, id: it.id })), { placeHolder: "Pick a question to answer" });
+            const pick = await vscode.window.showQuickPick(unanswered.map((it) => ({ label: it.question, description: it.filePath, id: it.id })), { placeHolder: "Pick a question to answer" });
             if (!pick)
                 return;
             item = all.find((i) => i.id === pick.id);
@@ -768,35 +765,35 @@ function activate(context) {
         // Offer to open file at range first
         const openNow = "Open file & highlight";
         const skipOpen = "Answer now";
-        const choice = yield vscode.window.showInformationMessage("Open the file to review the snippet before answering?", openNow, skipOpen);
+        const choice = await vscode.window.showInformationMessage("Open the file to review the snippet before answering?", openNow, skipOpen);
         if (choice === openNow) {
-            yield openFileAt(item);
+            await openFileAt(item);
         }
-        const ans = yield vscode.window.showInputBox({ prompt: "Enter your answer" });
+        const ans = await vscode.window.showInputBox({ prompt: "Enter your answer" });
         if (ans === undefined)
             return;
         // update item
-        const allItems = yield loadAll();
+        const allItems = await loadAll();
         const idx = allItems.findIndex(x => x.id === item.id);
         if (idx >= 0) {
             allItems[idx].answer = ans;
             allItems[idx].answeredAt = Date.now();
-            yield saveAll(allItems);
+            await saveAll(allItems);
             vscode.window.showInformationMessage("Answer saved.");
-            yield refreshAllDecorations();
+            await refreshAllDecorations();
         }
-    })));
+    }));
     // Edit answer - open webview to edit a specific answer (or prompt if none provided)
-    context.subscriptions.push(vscode.commands.registerCommand("extension.editAnswer", (itemArg) => __awaiter(this, void 0, void 0, function* () {
+    context.subscriptions.push(vscode.commands.registerCommand("extension.editAnswer", async (itemArg) => {
         let item = itemArg;
         if (!item) {
-            const all = yield loadAll();
+            const all = await loadAll();
             const answered = all.filter((i) => i.answer);
             if (answered.length === 0) {
                 vscode.window.showInformationMessage("No answered questions found.");
                 return;
             }
-            const pick = yield vscode.window.showQuickPick(answered.map((it) => ({ label: it.question, description: it.filePath, id: it.id })), { placeHolder: "Select answered question to edit" });
+            const pick = await vscode.window.showQuickPick(answered.map((it) => ({ label: it.question, description: it.filePath, id: it.id })), { placeHolder: "Select answered question to edit" });
             if (!pick)
                 return;
             item = all.find((i) => i.id === pick.id);
@@ -842,7 +839,7 @@ function activate(context) {
         </script>
         </body>
         </html>`;
-        panel.webview.onDidReceiveMessage((msg) => __awaiter(this, void 0, void 0, function* () {
+        panel.webview.onDidReceiveMessage(async (msg) => {
             if (msg.command === "cancel") {
                 panel.dispose();
                 return;
@@ -853,75 +850,74 @@ function activate(context) {
                     vscode.window.showErrorMessage("Answer cannot be empty.");
                     return;
                 }
-                const all = yield loadAll();
+                const all = await loadAll();
                 const idx = all.findIndex(x => x.id === item.id);
                 if (idx >= 0) {
                     all[idx].answer = a;
                     all[idx].answeredAt = Date.now();
-                    yield saveAll(all);
-                    yield refreshAllDecorations();
+                    await saveAll(all);
+                    await refreshAllDecorations();
                     vscode.window.showInformationMessage("Answer updated.");
                 }
                 panel.dispose();
             }
-        }), undefined, context.subscriptions);
-    })));
+        }, undefined, context.subscriptions);
+    }));
     // View Q&A in webview (table)
-    context.subscriptions.push(vscode.commands.registerCommand("extension.viewQA", () => __awaiter(this, void 0, void 0, function* () {
+    context.subscriptions.push(vscode.commands.registerCommand("extension.viewQA", async () => {
         const panel = vscode.window.createWebviewPanel("quizView", "Quiz: Questions & Answers", vscode.ViewColumn.One, {
             enableScripts: true
         });
-        const all = yield loadAll();
+        const all = await loadAll();
         panel.webview.html = getWebviewHtml(all, panel);
         // Send all top-level folder names to the webview for student summary
         const folders = (vscode.workspace.workspaceFolders || []).map(f => path.basename(f.uri.fsPath));
         panel.webview.postMessage({ studentFolders: folders });
-        panel.webview.onDidReceiveMessage((msg) => __awaiter(this, void 0, void 0, function* () {
+        panel.webview.onDidReceiveMessage(async (msg) => {
             // handle messages from webview
             if (!msg || !msg.command)
                 return;
             const cmd = msg.command;
             const id = msg.id;
             // reload fresh items when needed
-            let items = yield loadAll();
+            let items = await loadAll();
             if (cmd === "open" && id) {
                 const it = items.find((x) => x.id === id);
                 if (it)
-                    yield openFileAt(it);
+                    await openFileAt(it);
                 return;
             }
             // Delete with VS Code confirmation
             if (cmd === "delete" && id) {
-                const choice = yield vscode.window.showWarningMessage("Are you sure you want to delete this question?", { modal: true }, "Yes", "No");
+                const choice = await vscode.window.showWarningMessage("Are you sure you want to delete this question?", { modal: true }, "Yes", "No");
                 if (choice !== "Yes") {
                     return; // user cancelled
                 }
                 items = items.filter((x) => x.id !== id);
-                yield saveAll(items);
-                panel.webview.html = getWebviewHtml(yield loadAll(), panel);
-                yield refreshAllDecorations();
+                await saveAll(items);
+                panel.webview.html = getWebviewHtml(await loadAll(), panel);
+                await refreshAllDecorations();
                 return;
             }
             // Run a named command and pass the found QAItem to it
             if (cmd === 'runCommand' && msg.name) {
-                const allItems = yield loadAll();
+                const allItems = await loadAll();
                 const target = allItems.find(x => x.id === msg.id);
                 if (target) {
                     // this will call our registered commands and pass the QAItem object
-                    yield vscode.commands.executeCommand(msg.name, target);
+                    await vscode.commands.executeCommand(msg.name, target);
                 }
                 return;
             }
             if (cmd === "refresh") {
-                panel.webview.html = getWebviewHtml(yield loadAll(), panel);
-                yield refreshAllDecorations();
+                panel.webview.html = getWebviewHtml(await loadAll(), panel);
+                await refreshAllDecorations();
                 return;
             }
-        }), undefined, context.subscriptions);
-    })));
-    context.subscriptions.push(vscode.commands.registerCommand("extension.generateQA", () => __awaiter(this, void 0, void 0, function* () {
-        var _a;
-        const ws = (_a = vscode.workspace.workspaceFolders) === null || _a === void 0 ? void 0 : _a[0];
+        }, undefined, context.subscriptions);
+    }));
+    context.subscriptions.push(vscode.commands.registerCommand("extension.generateQA", async () => {
+        const ws = vscode.workspace.workspaceFolders?.[0];
         if (!ws) {
             vscode.window.showErrorMessage("No workspace folder is open.");
             return;
@@ -1130,7 +1126,7 @@ ${codeSnippet}
                     credit: 100,
                     timeLimitMin: 0,
                     startDate: config.startDate,
-                    endDate: new Date(new Date(config.endDate).getTime() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+                    endDate: new Date(new Date(config.endDate).getTime() + 365 * 24 * 60 * 60 * 1000).toISOString(), // 1 year later
                     password: "instructorAccess"
                 }
             ],
@@ -1148,15 +1144,13 @@ ${codeSnippet}
         const combinedAssessmentFile = path.join(instructorAssessRoot, "infoAssessment.json");
         fs.writeFileSync(combinedAssessmentFile, JSON.stringify(combinedAssessment, null, 2), "utf8");
         vscode.window.showInformationMessage("Generated QA files with student questions, combined instructor view, and all assessment files.");
-    })));
-    (() => __awaiter(this, void 0, void 0, function* () {
-        yield ensureStorageDir().catch(() => { });
-        yield refreshAllDecorations();
-    }))();
+    }));
+    (async () => {
+        await ensureStorageDir().catch(() => { });
+        await refreshAllDecorations();
+    })();
 }
-exports.activate = activate;
 function deactivate() {
     // nothing to clean-up
 }
-exports.deactivate = deactivate;
 //# sourceMappingURL=extension.js.map

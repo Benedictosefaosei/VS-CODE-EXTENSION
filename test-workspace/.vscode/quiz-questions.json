@@ -1,0 +1,19 @@
+[
+  {
+    "id": "test-1",
+    "filePath": "test.py",
+    "range": {
+      "start": {
+        "line": 1,
+        "character": 0
+      },
+      "end": {
+        "line": 3,
+        "character": 0
+      }
+    },
+    "snippet": "def hello_world():\n    print(\"Hello, World!\")\n    return 42",
+    "question": "Test question",
+    "askedAt": 1759338410694
+  }
+]

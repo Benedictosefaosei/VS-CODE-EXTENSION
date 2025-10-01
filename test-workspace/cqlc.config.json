@@ -1,0 +1,17 @@
+{
+  "title": "Test Quiz",
+  "topic": "Testing",
+  "folder": "Test",
+  "pl_root": "/Users/benedictoseisefa/Desktop/vscode-quiz-extension/test-workspace",
+  "pl_question_root": "TestQuestions",
+  "pl_assessment_root": "TestAssessments",
+  "set": "Test Set",
+  "number": "1",
+  "points_per_question": 10,
+  "startDate": "2025-03-22T10:30:00",
+  "endDate": "2025-03-22T16:30:40",
+  "timeLimitMin": 30,
+  "daysForGrading": 7,
+  "reviewEndDate": "2025-04-21T23:59:59",
+  "language": "python"
+}

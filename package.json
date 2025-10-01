@@ -53,13 +53,20 @@
   "scripts": {
     "vscode:prepublish": "npm run compile",
     "compile": "tsc -p ./",
-    "watch": "tsc -w -p ./"
+    "watch": "tsc -w -p ./",
+    "test": "npm run compile && node ./out/test/runTest.js",
+    "test-ui": "npm run compile && vscode-test"
   },
   "devDependencies": {
-    "@types/node": "^18.16.19",
+    "@types/glob": "^8.1.0",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^18.x",
     "@types/uuid": "^10.0.0",
-    "@types/vscode": "^1.82.0",
-    "typescript": "^4.9.5"
+    "@types/vscode": "^1.85.0",
+    "@vscode/test-electron": "^2.5.2",
+    "glob": "^11.0.3",
+    "mocha": "^10.8.2",
+    "typescript": "^5.3.3"
   },
   "dependencies": {
     "uuid": "^13.0.0"
