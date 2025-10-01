@@ -1,7 +1,7 @@
 {
-  "name": "quiz-annotator",
-  "displayName": "Quiz Annotator",
-  "publisher": "your-publisher-name",
+  "name": "benedict",
+  "displayName": "Benedict",
+  "publisher": "benedictoseisefa",
   "version": "0.0.1",
   "engines": {
     "vscode": "^1.82.0"

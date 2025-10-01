@@ -998,10 +998,6 @@ export function activate(context: vscode.ExtensionContext) {
     })
   );
   
-  
-  
-  
-  
 
   context.subscriptions.push(
   vscode.commands.registerCommand("extension.generateQA", async () => {
@@ -1254,11 +1250,6 @@ ${codeSnippet}
     vscode.window.showInformationMessage("Generated QA files with student questions, combined instructor view, and all assessment files.");
   })
 );
-
-
-  
-
-  
 
 
   (async () => {
