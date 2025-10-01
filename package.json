@@ -56,7 +56,8 @@
     "watch": "tsc -w -p ./",
     "test": "npm run compile && node ./out/test/runTest.js",
     "test-ui": "npm run compile && vscode-test"
-  },
+  }
+  ,
   "devDependencies": {
     "@types/glob": "^8.1.0",
     "@types/mocha": "^10.0.10",

@@ -39,7 +39,7 @@ exports.deactivate = deactivate;
 const vscode = __importStar(require("vscode"));
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
-// Add this UUID generation function (you can place it outside the command registration)
+// UUID generation function 
 function generateUUID() {
     return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
         const r = Math.random() * 16 | 0;
@@ -503,7 +503,6 @@ function getWebviewHtml(items, panel) {
 </body>
 </html>`;
 }
-// Add this function to your extension.ts
 function getExtensionContext() {
     return extensionContext;
 }
@@ -526,10 +525,8 @@ function activate(context) {
         await refreshAllDecorations();
     }));
     context.subscriptions.push(vscode.workspace.onDidChangeTextDocument(async () => {
-        // After editing, re-apply decorations (they will follow ranges but could shift)
         await refreshAllDecorations();
     }));
-    // Add Question on selection (fancy webview)
     context.subscriptions.push(vscode.commands.registerCommand("extension.addQuestion", async () => {
         const editor = vscode.window.activeTextEditor;
         if (!editor) {
@@ -543,55 +540,54 @@ function activate(context) {
         }
         const snippet = editor.document.getText(sel);
         const relPath = vscode.workspace.asRelativePath(editor.document.uri);
-        const panel = vscode.window.createWebviewPanel("quizAddQuestion", "Add Quiz Question", vscode.ViewColumn.Beside, { enableScripts: true } // must be true for messaging
-        );
+        const panel = vscode.window.createWebviewPanel("quizAddQuestion", "Add Quiz Question", vscode.ViewColumn.Beside, { enableScripts: true });
         const nonce = makeId();
         // Build HTML with plain JS (no TS type assertions)
         panel.webview.html = `<!DOCTYPE html>
-        <html lang="en">
-        <head>
-        <meta charset="utf-8">
-        <meta http-equiv="Content-Security-Policy"
-              content="default-src 'none'; style-src 'nonce-${nonce}'; script-src 'nonce-${nonce}';">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Add Question</title>
-        <style nonce="${nonce}">
-          body { font-family: sans-serif; padding: 16px; }
-          pre  { background:#f8f8f8; padding:8px; border-radius:4px; max-height:200px; overflow:auto; }
-          textarea { width:100%; min-height:120px; margin-top:8px; padding:8px; font-family:inherit; font-size:14px; }
-          .buttons { margin-top:12px; display:flex; gap:8px; }
-          button { padding:6px 12px; border-radius:6px; cursor:pointer; border:none; }
-          .save { background:#4caf50; color:white; }
-          .cancel { background:#ccc; }
-        </style>
-        </head>
-        <body>
-          <h2>Add Question</h2>
-          <p><strong>File:</strong> ${escapeHtml(relPath)}</p>
-          <p><strong>Selected Code:</strong></p>
-          <pre>${escapeHtml(snippet)}</pre>
+      <html lang="en">
+      <head>
+      <meta charset="utf-8">
+      <meta http-equiv="Content-Security-Policy"
+            content="default-src 'none'; style-src 'nonce-${nonce}'; script-src 'nonce-${nonce}';">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Add Question</title>
+      <style nonce="${nonce}">
+        body { font-family: sans-serif; padding: 16px; }
+        pre  { background:#f8f8f8; padding:8px; border-radius:4px; max-height:200px; overflow:auto; }
+        textarea { width:100%; min-height:120px; margin-top:8px; padding:8px; font-family:inherit; font-size:14px; }
+        .buttons { margin-top:12px; display:flex; gap:8px; }
+        button { padding:6px 12px; border-radius:6px; cursor:pointer; border:none; }
+        .save { background:#4caf50; color:white; }
+        .cancel { background:#ccc; }
+      </style>
+      </head>
+      <body>
+        <h2>Add Question</h2>
+        <p><strong>File:</strong> ${escapeHtml(relPath)}</p>
+        <p><strong>Selected Code:</strong></p>
+        <pre>${escapeHtml(snippet)}</pre>
 
-          <label for="question">Your question:</label>
-          <textarea id="question" placeholder="Type your question here"></textarea>
+        <label for="question">Your question:</label>
+        <textarea id="question" placeholder="Type your question here"></textarea>
 
-          <div class="buttons">
-            <button class="save" id="save">Save</button>
-            <button class="cancel" id="cancel">Cancel</button>
-          </div>
+        <div class="buttons">
+          <button class="save" id="save">Save</button>
+          <button class="cancel" id="cancel">Cancel</button>
+        </div>
 
-        <script nonce="${nonce}">
-          const vscode = acquireVsCodeApi();
-          document.getElementById('save').addEventListener('click', () => {
-            const q = document.getElementById('question').value.trim();
-            vscode.postMessage({ command: 'save', question: q });
-          });
-          document.getElementById('cancel').addEventListener('click', () => {
-            vscode.postMessage({ command: 'cancel' });
-          });
-        </script>
-        </body>
-        </html>`;
-        // Handle messages from the webview
+      <script nonce="${nonce}">
+        const vscode = acquireVsCodeApi();
+        document.getElementById('save').addEventListener('click', () => {
+          const q = document.getElementById('question').value.trim();
+          vscode.postMessage({ command: 'save', question: q });
+        });
+        document.getElementById('cancel').addEventListener('click', () => {
+          vscode.postMessage({ command: 'cancel' });
+        });
+      </script>
+      </body>
+      </html>`;
+        // Handle messages from the webview - THIS WAS COMMENTED OUT!
         panel.webview.onDidReceiveMessage(async (msg) => {
             if (msg.command === "cancel") {
                 panel.dispose();

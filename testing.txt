@@ -1,0 +1,99 @@
+========================
+Verified that webviews can be created properly
+
+Tested webview messaging between extension and webview
+
+Confirmed the webview infrastructure works
+
+=============
+Successfully opened your "View Questions & Answers" webview
+
+Verified the webview loads without errors
+
+Tested webview functionality
+
+=============
+Executed the extension.addQuestion command
+
+Verified it opens the add question webview
+
+Confirmed the command works with text selection
+
+
+====================
+Successfully ran extension.viewQA command
+
+Opened the main QA table webview
+
+Verified the command executes without errors
+=====================
+
+Executed quiz.createConfigFile command
+
+Created the cqlc.config.json file
+
+Verified the config file has correct content
+
+=======================
+Ran extension.generateQA command
+
+Processed quiz questions and generated output files
+
+Verified the file generation workflow works
+
+
+launch.json without running test
+
+{
+  "version": "0.2.0",
+  "configurations": [
+    
+    {
+      "name": "Launch Extension",
+      "type": "extensionHost",
+      "request": "launch",
+      "runtimeExecutable": "${execPath}",
+      "args": [
+                "--extensionDevelopmentPath=${workspaceFolder}",
+                "--extensionTestsPath=${workspaceFolder}/out/test",
+                "--disable-extensions"
+            ],
+      "outFiles": [
+                "${workspaceFolder}/out/**/*.js"
+            ],
+            "preLaunchTask": "npm: compile"
+    }
+  ]
+}
+
+
+launch.json running test
+
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Run Extension",
+            "type": "extensionHost",
+            "request": "launch",
+            "args": [
+                "--extensionDevelopmentPath=${workspaceFolder}"
+            ],
+            "outFiles": [
+                "${workspaceFolder}/out/**/*.js"
+            ]
+        },
+        {
+            "name": "Run Tests",
+            "type": "extensionHost",
+            "request": "launch",
+            "args": [
+                "--extensionDevelopmentPath=${workspaceFolder}",
+                "--extensionTestsPath=${workspaceFolder}/out/test"
+            ],
+            "outFiles": [
+                "${workspaceFolder}/out/**/*.js"
+            ]
+        }
+    ]
+}
